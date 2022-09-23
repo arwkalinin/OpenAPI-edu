@@ -1,0 +1,382 @@
+openapi: "3.0.2"
+info:
+  title: Orders API
+  version: "1.0"
+tags:
+  - name: orders
+    description: Everything about orders
+paths:
+
+  /orders:
+    description: Orders list
+    get: # GET ------------------------------
+      tags:
+        - orders
+      operationId: getOrders
+      summary: Get Orders
+      description: Search orders in DB by non-required parameters.
+      parameters:
+        - $ref: '#/components/parameters/status'
+        - $ref: '#/components/parameters/from'
+        - $ref: '#/components/parameters/to'
+      responses:
+        "200":
+          description: Found array of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Array of orders
+                items:
+                  $ref: '#/components/schemas/Order'
+            text/csv:
+              schema:
+                $ref: '#/components/schemas/CsvFile'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+    post: # POST ------------------------------
+      tags:
+        - orders
+      operationId: createNewOrder
+      summary: Add Orders to DB
+      description: Add order to DB JSON
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewOrder'
+          text/csv:
+            schema:
+              $ref: '#/components/schemas/CsvFile'
+      responses:
+        "201":
+          description: Added order to DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+
+  /orders/{id}:
+    description: Endpoint to manipulate with order object by ID
+    delete: # DELETE ------------------------------
+      tags:
+        - orders
+      operationId: deleteOrder
+      summary: Delete order from DB by ID
+      description: deleting order from DB by ID in path
+      security:
+        - orderAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        "204":
+          description: Order deleted successful
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+    patch: # PATCH ------------------------------
+      tags:
+        - orders
+      operationId: patchOrder
+      summary: Update order from DB by ID
+      description: deleting order from DB by ID in path
+      security:
+        - orderAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditedOrder'
+      responses:
+        "200":
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /orders/{id}/approved:
+    put: # PUT ------------------------------
+      tags:
+        - orders
+      operationId: approveOrder
+      summary: Approve order
+      security:
+        - orderAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        "200":
+          description: Order approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /orders/{id}/delivered:
+    put: # PUT ------------------------------
+      tags:
+        - orders
+      operationId: deliverOrder
+      summary: Deliver order
+      security:
+        - orderAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathId'
+      responses:
+        "200":
+          description: Order approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+
+# COMPONENTS AND SCHEMAS ///////////////////
+
+components:
+  parameters:
+    pathId:
+      name: id
+      description: id in path
+      required: true
+      example: 5
+      in: path
+      schema:
+        type: string
+    id:
+      name: id
+      description: order id
+      in: query
+      required: false
+      example: 7
+      schema:
+        type: string
+    productId:
+      name: productId
+      description: id of the product
+      in: query
+      required: false
+      example: 105201
+      schema:
+        $ref: '#/components/schemas/ProductId'
+    quantity:
+      name: quantity
+      description: quantity of products
+      in: query
+      required: false
+      example: 10
+      schema:
+        $ref: '#/components/schemas/Quantity'
+    date:
+      name: date
+      description: custom date time in java format to parse
+      in: query
+      required: false
+      example: 2022-08-10T07:58:52.965+00:00
+      schema:
+        $ref: '#/components/schemas/Date'
+    status:
+      name: status
+      description: status of order
+      in: query
+      required: false
+      example: placed or approved or delivered
+      schema:
+        $ref: '#/components/schemas/StatusEnum'
+    complete:
+      name: complete
+      description: is order completed
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Complete'
+    from:
+      name: from
+      description: datetime FROM (period)
+      in: query
+      required: false
+      example: 2022-08-10T07:58:52.965+00:00
+      schema:
+        type: string
+        format: date-time
+    to:
+      name: to
+      description: datetime TO (period)
+      in: query
+      required: false
+      example: 2022-08-10T07:58:52.965+00:00
+      schema:
+        type: string
+        format: date-time
+
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Order not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Conflict exception
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  securitySchemes:
+    orderAuth:
+      type: http
+      scheme: basic
+
+  schemas:
+
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: |
+            A relative URI reference that uniquely identifies the problem type.
+          example: '/problem/internal-server-error'
+        title:
+          type: string
+          description: title of problem
+          example: Internal server error
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status of problem.
+          minimum: 100
+          maximum: 599
+          example: 404
+        detail:
+          type: string
+          description: Detail of the problem
+          example: Save data error
+
+    Id:
+      description: Order ID
+      minimum: 1
+      type: integer
+      format: int64
+      example: 10
+    ProductId:
+      description: Product ID
+      minimum: 1
+      type: integer
+      format: int64
+      example: 301215
+    Quantity:
+      description: Quantity of products
+      minimum: 1
+      maximum: 100
+      type: integer
+      format: int64
+      example: 15
+    Date:
+      description: date-time of order
+      type: string
+      format: date-time
+      example: 2022-08-10T07:58:52.965+00:00
+    Complete:
+      description: is order complete (boolean)
+      type: boolean
+      default: false
+
+    StatusEnum:
+      description: status of order
+      example: placed or approved or delivered
+      type: string
+      enum:
+        - placed
+        - approved
+        - delivered
+
+    CsvFile:
+      description: .csv file
+      type: string
+      format: binary
+
+    Order:
+      description: order with all fields
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        productId:
+          $ref: '#/components/schemas/ProductId'
+        quantity:
+          $ref: '#/components/schemas/Quantity'
+        date:
+          $ref: '#/components/schemas/Date'
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        complete:
+          $ref: '#/components/schemas/Complete'
+
+    EditedOrder:
+      description: order with all fields
+      type: object
+      properties:
+        quantity:
+          $ref: '#/components/schemas/Quantity'
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        complete:
+          $ref: '#/components/schemas/Complete'
+
+    NewOrder:
+      description: new order with 2 required fields
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        productId:
+          $ref: '#/components/schemas/ProductId'
+        quantity:
+          $ref: '#/components/schemas/Quantity'
+        date:
+          $ref: '#/components/schemas/Date'
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        complete:
+          $ref: '#/components/schemas/Complete'

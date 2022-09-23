@@ -1,0 +1,11 @@
+###### servlet ######
+spring:
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+###### auth ######
+admin:
+  login: admin
+  pass: admin1
